@@ -143,7 +143,7 @@ Make_NLS_Fits <- function(df_data)
 #                         lts_open=data_open$lts,lts_closed=data_closed$lts,num_ltsteps_open=data_open$ns,num_ltsteps_closed=data_closed$ns,rel_uncertainty=0.0001)
 #  init_stan_bell <- list(list(dx_off=-0.5,dx_on=6.0,tau0_open=1e-3,tau0_closed=1e02,factor=1.00))
 #                         
-#  fit_stan_bell <- stan(file="fit_bell_oc.stan",data=data_stan_bell,init=init_stan_bell,iter=num_iter,chains=num_chains)
+#  fit_stan_bell <- stan(file="fit_bell_oc.stan",data=data_stan_bell,init=init_stan_bell,iter=num_iter,chains=num_chahttp://127.0.0.1:22908/graphics/plot_zoom_png?width=563&height=643ins)
 #  return(fit_stan_bell)
 #}
 
@@ -172,5 +172,15 @@ Plot_Normal_Distribution <- function(mu,sigma,x_min,x_max,num_points)
   }
   df_norm_plot <- data.frame(x_norm_dist=x_values,y_norm_dist=y_values)
   return(df_norm_plot)
+}
+
+## HMM_Calculate_Lifetime_LogLikelihood(t_m,tau,n)
+## calculates the log likelihood for the mean value (t_m)
+## out of n exponentially distributed RVs with underlying 
+## lifetime tau, see description above
+HMM_Calculate_Lifetime_LogLikelihood <- function(t_m,tau,n)
+{
+  log_lik <- log(n) - n*log(tau)+(n-1)*log(n*t_m)-n*t_m/tau - lgamma(n)
+  return(log_lik)
 }
 

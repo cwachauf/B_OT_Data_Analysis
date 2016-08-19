@@ -144,3 +144,48 @@ Plot_All <- function(df_data)
   points(xs_dg_ml,ys_dg_ml,type="l",lwd=2,lty=2)
   ## plot te 
 }
+
+## HMM_Calculate_Lifetime_LogLikelihood(t_m,tau,n)
+## calculates the log likelihood for the mean value (t_m)
+## out of n exponentially distributed RVs with underlying 
+## lifetime tau, see description above
+HMM_Calculate_Lifetime_LogLikelihood <- function(t_m,tau,n)
+{
+  log_lik <- log(n) - n*log(tau)+(n-1)*log(n*t_m)-n*t_m/tau - lgamma(n)
+  return(log_lik)
+}
+
+## Make_Test_Plot_LT_Statistics()
+##
+Make_Test_Plot_LT_Statistics <- function()
+{
+  tau0 <- 2.0
+  n1 <- 5
+  ndraws <- 1e6
+  
+  lt_array <- array(0,dim=c(ndraws))
+  for(i in 1:ndraws)
+  {
+    lt_array[i] <- mean(rexp(n=n1,rate=1.0/tau0))
+  }
+  hist(lt_array,breaks=100,freq=FALSE,xlab="lifetime (mean of 5 values)",xlim=c(-1,6),main="likelihood function")
+  
+  lts <- seq(from=0,to=6,by=0.01)
+  dens <- array(0,dim=c(length(lts)))
+  for(i in 1:length(lts))
+  {
+    dens[i] <- exp(HMM_Calculate_Lifetime_LogLikelihood(lts[i],tau0,n1))
+  }
+  points(lts,dens,type="l",lwd=2)
+  lts2 <- seq(from=-1,to=6,by=0.01)
+  dens2 <- array(0,dim=c(length(lts2)))
+  for(i in 1:length(lts2))
+  {
+    dens2[i] <- dnorm(lts2[i],mean=tau0,sd=tau0/sqrt(n1))
+  }
+  points(lts2,dens2,type="l",lty=2,lwd=2)
+  xpts_line <- c(0,0)
+  ypts_line <- c(0,1)
+  points(xpts_line,ypts_line,type="l")
+  
+}
