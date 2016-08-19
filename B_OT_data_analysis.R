@@ -161,3 +161,16 @@ PlotBell <- function(dx,tau0,fmin,fmax,npnts,Temp=298.15)
   df_plot <- data.frame(forces,lts);
   return(df_plot);
 }
+
+Plot_Normal_Distribution <- function(mu,sigma,x_min,x_max,num_points)
+{
+  x_values <- seq(from=x_min,to=x_max,length=num_points)
+  y_values <- matrix(nrow=num_points,ncol=1)
+  for(i in 1:num_points)
+  {
+    y_values[i] <- dnorm(x_values[i],mean=mu,sd=sigma)
+  }
+  df_norm_plot <- data.frame(x_norm_dist=x_values,y_norm_dist=y_values)
+  return(df_norm_plot)
+}
+
