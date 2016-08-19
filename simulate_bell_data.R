@@ -81,12 +81,15 @@ Plot_All <- function(df_data)
   print("dG_ML: ")
   print(dG)
   
-  sf_bell1 <- Stan_Fit_Bell(df_data,rel_unc=0.0001,num_iter=40000)
-  sf_bell2 <- Stan_Fit_Bell(df_data,rel_unc=0.15,num_iter=40000)
+  dx_1 <- nls_fit_coefs[2,2]
+  
+  
+  sf_bell1 <- Stan_Fit_Bell(df_data,rel_unc=0.0001,num_iter=400000)
+  sf_bell2 <- Stan_Fit_Bell(df_data,rel_unc=0.15,num_iter=400000)
   ##sf_bell3 <- Stan_Fit_Bell(df_data,rel_unc=0.15,num_iter=40000)
   
-  breaks = seq(from=-3,to=+1,by=0.05)
-  breaks2 = seq(from=-65,to=-20,by=0.3)
+  breaks = seq(from=-5,to=+1,by=0.02)
+  breaks2 = seq(from=-65,to=-20,by=0.2)
   
   mat1 <- as.matrix(sf_bell1)
   mat2 <- as.matrix(sf_bell2)
@@ -119,10 +122,17 @@ Plot_All <- function(df_data)
   print(sd1)
   print(sd2)
   
-  plot(hist1,col=rgb(1,0,0,0.25),xlab="dx [nm]",ylab="frequency",main="uncertainty in k_eff")
+  plot(hist1,col=rgb(1,0,0,0.25),xlab="dx [nm]",ylab="frequency",main="uncertainty in k_eff",xlim=c(-3,0))
   plot(hist2,col=rgb(0,0,1,0.25),add=T)
-  plot(hist1_1,col=rgb(1,0,0,0.25),xlab="dG [pN/nm]",ylab="frequency",main="uncertainty in k_eff")
+  xs_dx1 <- c(dx_1,dx_1)
+  vs <- par("usr")
+  ys_dx1 <- c(0,vs[4])
+  points(xs_dx1,ys_dx1,type="l",lwd=2,lty=2)
+  plot(hist1_1,col=rgb(1,0,0,0.25),xlab="dG [pN/nm]",ylab="frequency",main="uncertainty in k_eff",xlim=c(-55,-40))
   plot(hist2_1,col=rgb(0,0,1,0.25),add=T)
+  
+  
+  
  ## plot(hist3,col=rgb(0,1,0,0.25),add=T)
   
   ## add line 
@@ -130,7 +140,7 @@ Plot_All <- function(df_data)
   vs <- par("usr")
   
   xs_dg_ml <- c(dG,dG)
-  ys_dg_ml <- c(vs[3],vs[4])
-  points(xs_dg_ml,ys_dg_ml,type="l",lwd=2)
+  ys_dg_ml <- c(0,vs[4])
+  points(xs_dg_ml,ys_dg_ml,type="l",lwd=2,lty=2)
   ## plot te 
 }
