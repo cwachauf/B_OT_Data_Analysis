@@ -20,12 +20,14 @@ data
   real forces[N]; 
   real<lower=0> lifetimes[N];
   int num_lt_steps[N];
+  real<lower=0> rel_uncertainty;
 }
 
 parameters
 {
   real dx; // persistence lenth[nm]
   real<lower=0> tau0;
+  real<lower=0> factor;
 }
 
 transformed parameters
@@ -38,13 +40,16 @@ transformed parameters
 
 model 
 {
+  real forces_calibrated[N];
   real taus[N];
+  
   dx ~ normal(0,5); // flat normal prior
   tau0 ~ cauchy(0,2.5);
-  
+  factor ~ normal(1.0,rel_uncertainty); // allow for a small correction in the force calibration
   for(i in 1:N)
   {
-    taus[i] <- tau0*exp(-(dx*forces[i])/(kB*Temp));
+    forces_calibrated[i] <- forces[i]*factor;
+    taus[i] <- tau0*exp(-(dx*forces_calibrated[i])/(kB*Temp));
     increment_log_prob(LogProbMeanExp(lifetimes[i],num_lt_steps[i],taus[i]));
   }
 }
