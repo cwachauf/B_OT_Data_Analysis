@@ -1,5 +1,23 @@
 source("polym_mechanics.R")
 
+Occupation_Probability_From_Force_Open <- function(F_open,L,P,k_eff,G_int,dz,Temp=298.15)
+{
+  kB <- 1.38e-02
+  G_open_trap <- (0.5*F_open^2)/(k_eff)
+  x_open_leash <- Extension_From_Force_WLC(F_open,L,P,Temp)
+  G_open_leash <- Integrated_WLC(x_open_leash,L,P,Temp)
+  G_open <- G_open_leash + G_open_trap
+  
+  x_closed_trap <- x_open_leash-2*dz + F_open/k_eff
+  F_closed <- k_eff*x_closed_trap
+  G_closed_trap <- (0.5*F_closed^2)/(k_eff)
+  G_closed_leash <- Integrated_WLC(2*dz,L,P,Temp)
+  G_closed <- G_closed_leash + G_closed_trap + G_int
+  exp_open <- exp(-G_open/(kB*Temp))
+  exp_closed <- exp(-G_closed/(kB*Temp))
+  p_open <- exp_open/(exp_open+exp_closed)
+  return(p_open)
+}
 
 ## Implementation of "Berkemeier-Schlierf"-model in R
 Lifetime_From_Force_BS_Open <- function(F_open,tau0_open,L_trans,L_open,P,k_eff,Temp=298.15)
@@ -191,17 +209,26 @@ TestBSPlot <- function()
   k_eff <- 0.15
   tau0_open <- 1e-04
   tau0_closed <- 1e02
-  
   forces <- seq(from=0,to=10,by=0.1)
-  lts_open <- array(0,dim=c(length(forces)))
-  lts_closed <- array(0,dim=c(length(forces)))
+ # lts_open <- array(0,dim=c(length(forces)))
+ # lts_closed <- array(0,dim=c(length(forces)))
+ # for(i in 1:length(forces))
+ # {
+ #   lts_open[i] <- Lifetime_From_Force_BS_Open(forces[i],tau0_open,L_trans,L_open,P,k_eff,Temp=298.15)
+ #   lts_closed[i] <- Lifetime_From_Force_BS_Closed(forces[i],tau0_closed,L_trans,P,k_eff,Temp=298.15)
+ # }
+  #plot(forces,lts_open,type="l",log="y",ylim=c(1e-04,1e6))
+  #points(forces,lts_closed,type="l")
+  #
+  ##
+  G_int <- -40
+  popen <- array(0,dim=c(length(forces)))
   for(i in 1:length(forces))
   {
-    lts_open[i] <- Lifetime_From_Force_BS_Open(forces[i],tau0_open,L_trans,L_open,P,k_eff,Temp=298.15)
-    lts_closed[i] <- Lifetime_From_Force_BS_Closed(forces[i],tau0_closed,L_trans,P,k_eff,Temp=298.15)
+    popen[i] <- Occupation_Probability_From_Force_Open(forces[i],L_open,P,k_eff,G_int,dz=3.5,Temp=298.15)
+    
   }
-  plot(forces,lts_open,type="l",log="y",ylim=c(1e-04,1e6))
-  points(forces,lts_closed,type="l")
+  plot(forces,popen,type="l")
 }
 ## PlotBell(dx,tau0,fmin,fmax,npnts,Temp=298.15)
 PlotBell <- function(dx,tau0,fmin,fmax,npnts,Temp=298.15)
