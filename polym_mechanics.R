@@ -132,6 +132,19 @@ Create_Extension_Array_From_Forces_WLC_Hook <- function(forces,L,P,k_eff,Temp=29
   return(df_wlc_hook)
 }
 
+## Force_From_Extension_WLC_Hook(x,L,P,k_eff,Temp)
+Force_From_Extension_WLC_Hook <- function(x,L,P,k_eff,Temp)
+{
+  ## BE CAREFUL, THESE PARAMETERS MIGHT NEED TO GET CHANGED
+  F_min <- 0
+  F_max <- 12
+  n_forces <- 1000
+  ##
+  forces <- seq(from=F_min,to=F_max,length=n_forces)
+  df_wlc_hook <- Create_Extension_Array_From_Forces_WLC_Hook(forces,L,P,k_eff,Temp)
+  result <- approx(x=df_wlc_hook$extensions,y=df_wlc_hook$forces,xout=x)
+  return(result$y)
+}
 ## Test_Polym_Mechanics()
 ##
 Test_Polym_Mechanics <- function()

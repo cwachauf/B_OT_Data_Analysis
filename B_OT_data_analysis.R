@@ -1,6 +1,42 @@
 source("polym_mechanics.R")
 
 
+## Implementation of "Berkemeier-Schlierf"-model in R
+Lifetime_From_Force_BS_Open <- function(F_open,tau0_open,L_trans,L_open,P,k_eff,Temp=298.15)
+{
+  kB <- 1.38e-02
+  G_open_trap <- (0.5*F_open^2)/(k_eff)
+  x_open_leash <- Extension_From_Force_WLC(F_open,L_open,P,Temp)
+  G_open_leash <- Integrated_WLC(x_open_leash,L_open,P,Temp)
+  G_open <- G_open_leash + G_open_trap
+  
+  x_trans_total <- x_open_leash + F_open/k_eff
+  F_trans <- Force_From_Extension_WLC_Hook(x_trans_total,L_trans,P,k_eff,Temp)
+  x_trans_leash <- Extension_From_Force_WLC(F_trans,L_trans,P,Temp)
+  
+  G_trans_leash <- Integrated_WLC(x_trans_leash,L_trans,P,Temp)
+  G_trans_trap <- (0.5*F_trans^2)/(k_eff)
+  G_trans <- G_trans_leash + G_trans_trap
+    
+  tau_open <- tau0_open*exp(-(G_open-G_trans)/(kB*Temp))
+  return(tau_open)
+}
+
+Lifetime_From_Force_BS_Closed <- function(F_closed,tau0_closed,L_trans,P,k_eff,Temp=298.15)
+{
+  kB <- 1.38e-02
+  G_closed_trap <- (0.5*F_closed^2)/(k_eff)
+  G_closed <- G_closed_trap
+  
+  x_trans_total <- F_closed/k_eff
+  F_trans <- Force_From_Extension_WLC_Hook(x_trans_total,L_trans,P,k_eff,Temp)
+  G_trans_trap <- (0.5*F_trans^2)/(k_eff)
+  x_trans_leash <- Extension_From_Force_WLC(F_trans,L_trans,P,Temp)
+  G_trans_leash <- Integrated_WLC(x_trans_leash,L_trans,P,Temp)
+  G_trans <- G_trans_leash + G_trans_trap
+  tau_closed <- tau0_closed*exp(-(G_closed-G_trans)/(kB*Temp))
+  return(tau_closed)
+}
 
 ## Fit_Bell_Stan(forces,lifetimes,num_steps,dx0,tau0_0)
 Fit_Bell_Stan <- function(forces,lifetimes,num_steps,dx0,tau0_0,factor0,num_iter,num_chains)
@@ -147,6 +183,26 @@ Make_NLS_Fits <- function(df_data)
 #  return(fit_stan_bell)
 #}
 
+TestBSPlot <- function()
+{
+  L_trans <- 20
+  L_open <- 40
+  P <- 0.9
+  k_eff <- 0.15
+  tau0_open <- 1e-04
+  tau0_closed <- 1e02
+  
+  forces <- seq(from=0,to=10,by=0.1)
+  lts_open <- array(0,dim=c(length(forces)))
+  lts_closed <- array(0,dim=c(length(forces)))
+  for(i in 1:length(forces))
+  {
+    lts_open[i] <- Lifetime_From_Force_BS_Open(forces[i],tau0_open,L_trans,L_open,P,k_eff,Temp=298.15)
+    lts_closed[i] <- Lifetime_From_Force_BS_Closed(forces[i],tau0_closed,L_trans,P,k_eff,Temp=298.15)
+  }
+  plot(forces,lts_open,type="l",log="y",ylim=c(1e-04,1e6))
+  points(forces,lts_closed,type="l")
+}
 ## PlotBell(dx,tau0,fmin,fmax,npnts,Temp=298.15)
 PlotBell <- function(dx,tau0,fmin,fmax,npnts,Temp=298.15)
 {
