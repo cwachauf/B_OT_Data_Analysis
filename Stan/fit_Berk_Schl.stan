@@ -1,10 +1,9 @@
-
 functions {
   // real ForceWLC(real P,real L,real Temp,real x)
   // calculates the force of a WLC-model (Marko & Siggia interpolation formula)
   // for an extension of "x", the WLC is characterized by
   // its persistence lengh P (nm)
-  // its contour lenght L (nm)
+  // its contour length L (nm)
   // and the Temperature (K)
   real ForceWLC(real P,real L,real Temp,real x) // calculate the force-extension for a WLC-model
   {
@@ -434,45 +433,55 @@ real OccupationProbabilityFromForceClosed(real P,real L,real Temp,real k_eff,rea
 
 data 
 {
-  int<lower=1> N_open; // number of data points (forces_open)
-  real extensions_open[N_open];
-  real occ_probs_open[N_open];
+  int<lower=1> N_open; 
+  int<lower=1> N_closed; 
+  real forces_open[N_open];
+  real lts_open[N_open];
+  real forces_closed[N_closed];
+  real lts_closed[N_closed];
 }
 
 parameters
 {
   real<lower=0> P; // persistence length[nm]
-  real<lower=0> CL; // contour length[nm]
+  real<lower=0> L_trans; // contour length[nm]
+  real<lower=0> L_open;
+  
   real k_eff; // the effective spring constant
-  real G_int; // interaction energy (in pN*nm)
-  real<lower=0> sigma; // noise level (has to be improved, noise not normally distributed)
-  real ext_offset;
+  real<lower=0> tau0_open;
+  real<lower=0> tau0_closed;
+  
+  real<lower=0> N_eff; // noise level (has to be improved, noise not normally distributed)
+  real<lower=0> Temp;
+  
 }
 
 transformed parameters
 {
-  real<lower=0> Temp;
-  real<lower=0> dz;
-  Temp <- 298.15;
-  dz <- 3.5;
 }
 
 model 
 {
-  real forces_open[N_open];
-  real occ_probs_open_ideal[N_open];
+  // noise-free quantities
+  real lts_open_ideal[N_open];
+  real lts_closed_ideal[N_closed];
+  P ~ normal(0.9,0.2); 
+  L_trans ~ normal(20,5); // contour length[nm]
+  L_open ~ normal(40,2);
+  k_eff ~ normal(0.15,0.02);
+  tau0_open ~ cauchy(0,2.5);
+  tau0_closed ~ cauchy(0,2.5);
+  N_eff ~ cauchy(0,2.5);
+  Temp ~ normal(298.15,2.0); 
   
-  P ~ normal(1.00,0.3);
-  CL ~ normal(40,5);
-  k_eff ~ normal(0.15,0.0001);
-  G_int ~ normal(0,100);
-  sigma ~ cauchy(0,2.5);
-  ext_offset ~ normal(0,0.001);
-  // first, convert the extension into forces
   for(i in 1:N_open)
   {
-    forces_open[i] <- (extensions_open[i]+ext_offset)*k_eff;
-    occ_probs_open_ideal[i] <- OccupationProbabilityFromForceOpen(P,CL,Temp,k_eff,G_int,dz,forces_open[i]);
-    occ_probs_open[i] ~ normal(occ_probs_open_ideal[i],sigma);
+    lts_open_ideal[i] <- LifetimeFromForce_BS_Open(tau0_open,P,L_trans,L_open,Temp,k_eff,forces_open[i]);
+    lts_open[i] ~ gamma_rng(N_eff,1.0/lts_open_ideal[i])/N_eff;
+  }
+  for(i in 1:N_closed)
+  {
+    lts_closed_ideal[i] <- LifetimeFromForce_BS_Closed(tau0_closed,P,L_trans,L_open,Temp,k_eff,forces_closed[i]);
+    lts_closed[i] ~ gamma_rng(N_eff,1.0/lts_closed_ideal[i])/N_eff;
   }
 }
