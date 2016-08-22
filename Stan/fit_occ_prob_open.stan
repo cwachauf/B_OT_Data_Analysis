@@ -1,4 +1,3 @@
-## last update: Do, 07.07.2016
 
 functions {
   // real ForceWLC(real P,real L,real Temp,real x)
@@ -435,40 +434,45 @@ real OccupationProbabilityFromForceClosed(real P,real L,real Temp,real k_eff,rea
 
 data 
 {
-  int<lower=1> N; // number of data points 
-  real forces_open[N];
-  real ext_gains_fopen[N];
+  int<lower=1> N_open; // number of data points (forces_open)
+  real extensions_open[N_open];
+  real occ_probs_open[N_open];
 }
 
 parameters
 {
-  real<lower=0> P; // persistence lenth[nm]
-  real<lower=0> CL;
-  real<lower=0> sigma;
+  real<lower=0> P; // persistence length[nm]
+  real<lower=0> CL; // contour length[nm]
+  real k_eff; // the effective spring constant
+  real G_int; // interaction energy (in pN*nm)
+  real<lower=0> sigma; // noise level (has to be improved, noise not normally distributed)
+  real ext_offset;
 }
 
 transformed parameters
 {
   real<lower=0> Temp;
   real<lower=0> dz;
-  real<lower=0> k_eff;
-  k_eff <- 0.15;
-  Temp <- 298;
-  dz <- 3.5; // minimum half extension of leash
+  Temp <- 298.15;
+  dz <- 3.5;
 }
 
 model 
 {
-  real temp_ext_gains_fopen[N];
+  real forces_open[N_open];
+  real occ_probs_open_ideal[N_open];
+  
+  P ~ normal(1.00,0.3);
+  CL ~ normal(40,5);
+  k_eff ~ normal(0.15,0.0001);
+  G_int ~ normal(0,100);
   sigma ~ cauchy(0,2.5);
-  CL ~ normal(40,1);
-  P ~ normal(1,0.2);
-  for(i in 1:N)
+  ext_offset ~ normal(0,0.001);
+  // first, convert the extension into forces
+  for(i in 1:N_open)
   {
-    temp_ext_gains_fopen[i] <- ExtensionGainFromForceOpen(P,CL,Temp,dz,forces_open[i]);
-  }
-  for(i in 1:N)
-  {
-    ext_gains_fopen[i] ~ normal(temp_ext_gains_fopen[i],sigma);
+    forces_open[i] <- (extensions_open[i]+ext_offset)*k_eff;
+    occ_probs_open_ideal[i] <- OccupationProbabilityFromForceOpen(P,CL,Temp,k_eff,G_int,dz,forces_open[i]);
+    occ_probs_open[i] ~ normal(occ_probs_open_ideal[i],sigma);
   }
 }

@@ -3,14 +3,14 @@ source("polym_mechanics.R")
 Occupation_Probability_From_Force_Open <- function(F_open,L,P,k_eff,G_int,dz,Temp=298.15)
 {
   kB <- 1.38e-02
-  G_open_trap <- (0.5*F_open^2)/(k_eff)
+  G_open_trap <- 0.5*(F_open^2)/(k_eff)
   x_open_leash <- Extension_From_Force_WLC(F_open,L,P,Temp)
   G_open_leash <- Integrated_WLC(x_open_leash,L,P,Temp)
   G_open <- G_open_leash + G_open_trap
   
   x_closed_trap <- x_open_leash-2*dz + F_open/k_eff
   F_closed <- k_eff*x_closed_trap
-  G_closed_trap <- (0.5*F_closed^2)/(k_eff)
+  G_closed_trap <- 0.5*(F_closed^2)/(k_eff)
   G_closed_leash <- Integrated_WLC(2*dz,L,P,Temp)
   G_closed <- G_closed_leash + G_closed_trap + G_int
   exp_open <- exp(-G_open/(kB*Temp))
@@ -228,15 +228,15 @@ TestBSPlot <- function()
   k_eff <- 0.15
   tau0_open <- 1e-04
   tau0_closed <- 1e02
-  forces <- seq(from=1.5,to=10,by=0.1)
-
+  forces <- seq(from=0,to=10,by=0.1)
+  dz <- 0.0
   G_int <- -18
   popen <- array(0,dim=c(length(forces)))
   pclosed <- array(0,dim=c(length(forces)))
   for(i in 1:length(forces))
   {
-    popen[i] <- Occupation_Probability_From_Force_Open(forces[i],L_open,P,k_eff,G_int,dz=3.5,Temp=298.15)
-    pclosed[i] <- Occupation_Probability_From_Force_Closed(forces[i],L_open,P,k_eff,G_int,dz=3.5,Temp=298.15)
+    popen[i] <- Occupation_Probability_From_Force_Open(forces[i],L_open,P,k_eff,G_int,dz,Temp=298.15)
+    pclosed[i] <- Occupation_Probability_From_Force_Closed(forces[i],L_open,P,k_eff,G_int,dz,Temp=298.15)
     
   }
   plot(forces,popen,type="l")
@@ -279,3 +279,68 @@ HMM_Calculate_Lifetime_LogLikelihood <- function(t_m,tau,n)
   return(log_lik)
 }
 
+Test_Occ_Prob_Open_Inference <- function(ni)
+{
+  test_df <- read.table(file="occ_probs_A089.txt",header=TRUE);
+  ## open state == 0, closed_state == 1
+  k_eff_calib <- 0.15
+  extensions_open <- test_df$dGForce0/k_eff_calib
+  extensions_closed <- test_df$dGForce1/k_eff_calib
+  print(extensions_open)
+  
+  ## start stan sampling 
+  
+  data_stan_occ_prob_open <- list(N_open=length(extensions_open),extensions_open=extensions_open,occ_probs_open=test_df$RatioAreaRel0)
+  init_stan_occ_prob_open <- list(list(P=0.9,CL=40,k_eff=0.15,G_int=-30,sigma=0.05,ext_offset=0))  
+  fit_stan_occ_prob_open <- stan(file="/Users/christianwachauf/Documents/Scripts/GithubRepo/B_OT_Data_Analysis/Stan/fit_occ_prob_open.stan",data=data_stan_occ_prob_open,init=init_stan_occ_prob_open,iter=ni,chains=1)
+  ## do some plotting...
+  mat <- as.matrix(fit_stan_occ_prob_open)
+  ext_offset_mean <- mean(mat[,6])
+  k_eff_mean <- mean(mat[,3])
+  df_ext_op <- data.frame(extensions=extensions_open,occ_probs=test_df$RatioAreaRel0)
+  ##df_plot_calib_data <- Plot_Calibrated_Force_Data(df_ext_op,k_eff_mean,ext_offset_mean)
+  
+  ##plot(df_plot_calib_data$forces,df_plot_calib_data$occ_probs,xlim=c(2,8),ylim=c(-0.05,1.05))
+  plot(test_df$dGForce0,test_df$RatioAreaRel0)
+  df_plot_mean_post <- Plot_Occ_Prob_From_Mean_Posterior(fit_stan_occ_prob_open,2.0,8.0,100)
+  points(df_plot_mean_post$fopen,df_plot_mean_post$occ_probs_open,type="l")
+  return(fit_stan_occ_prob_open)
+}
+
+## Plot_Calibrated_Force_Data(df_ext_op,k_eff)
+Plot_Calibrated_Force_Data <- function(df_ext_op,k_eff,ext_offset)
+{
+  forces <- (ext_offset + df_ext_op$extensions)*k_eff
+  occ_probs <- df_ext_op$occ_probs
+  df_calib <- data.frame(forces=forces,occ_probs=occ_probs)
+}
+
+## Plot_Occ_Prob_From_Mean_Posterior(sf_op)
+Plot_Occ_Prob_From_Mean_Posterior <- function(sf_op,F_min,F_max,n_forces)
+{
+  ## get mean posterior values:
+  mat <- as.matrix(sf_op)
+  P_mean <- mean(mat[,1])
+  CL_mean <- mean(mat[,2])
+  k_eff_mean <- mean(mat[,3])
+  G_int_mean <- mean(mat[,4])
+  sigma_mean <- mean(mat[,5])
+  ext_offset_mean <- mean(mat[,6])
+  Temp_mean <- mean(mat[,7])
+  dz_mean <- mean(mat[,8])
+  df_plot_prob_open <- Plot_Occ_Prob_Open(CL_mean,P_mean,k_eff_mean,G_int_mean,dz_mean,Temp_mean,F_min,F_max,n_forces)
+  return(df_plot_prob_open)
+}
+
+##function(F_open,L,P,k_eff,G_int,dz,Temp=298.15)
+Plot_Occ_Prob_Open <- function(L,P,k_eff,G_int,dz,Temp=298.15,F_min,F_max,n_forces)
+{
+  forces <- seq(from=F_min,to=F_max,length=n_forces)
+  occ_probs_open <- array(0,dim=c(n_forces))
+  for(i in 1:n_forces)
+  {
+    occ_probs_open[i] <- Occupation_Probability_From_Force_Open(forces[i],L,P,k_eff,G_int,dz,Temp)
+  }
+  df_plot_prob_open <- data.frame(fopen=forces,occ_probs_open=occ_probs_open)
+  return(df_plot_prob_open)
+}
