@@ -1,5 +1,27 @@
 source("polym_mechanics.R")
 
+## Simulate_Stan_Occ_Prob_Open(F_min,F_max,n_forces,L,P,k_eff,G_int,dz,Temp=298.15)
+## use Stan to simulate occupation probability data for the open state
+Simulate_Stan_Occ_Prob_Open <- function(F_min,F_max,n_forces,L,P,k_eff,G_int,dz,Temp=298.15,sigma=0.03)
+{
+	require("rstan")
+	forces_open <- seq(from=F_min,to=F_max,length=n_forces)	
+  	data_sim_opo_stan <- list(N_open=n_forces,forces_open=forces_open,P=P,CL=L,k_eff=k_eff,G_int=G_int,dz=dz,sigma=sigma)
+	sim_stan_opo <- stan(file="C:/Users/Christian/Documents/GithubRepo/B_OT_Data_Analysis/Stan/sim_occ_prob_open.stan",data=data_sim_opo_stan,iter=1,chain=1,algorithm="Fixed_param")
+	return(sim_stan_opo)
+}
+
+#data 
+#{
+#  int<lower=1> N_open; // number of data points (forces_open)
+#  real forces_open[N_open];
+#  real<lower=0> P;
+#  real<lower=0> CL; // contour length[nm]
+##  real<lower=0> k_eff; // the effective spring constant
+#  real G_int; // interaction energy (in pN*nm)
+##  real<lower=0> sigma; // noise level (has to be improved, noise not normally distributed)
+#}
+
 Occupation_Probability_From_Force_Open <- function(F_open,L,P,k_eff,G_int,dz,Temp=298.15)
 {
   kB <- 1.38e-02
