@@ -160,7 +160,7 @@ HMM_Calculate_Lifetime_LogLikelihood <- function(t_m,tau,n)
 Make_Test_Plot_LT_Statistics <- function()
 {
   tau0 <- 2.0
-  n1 <- 5
+  n1 <- 50
   ndraws <- 1e6
   
   lt_array <- array(0,dim=c(ndraws))
@@ -168,7 +168,7 @@ Make_Test_Plot_LT_Statistics <- function()
   {
     lt_array[i] <- mean(rexp(n=n1,rate=1.0/tau0))
   }
-  hist(lt_array,breaks=100,freq=FALSE,xlab="lifetime (mean of 5 values)",xlim=c(-1,6),main="likelihood function")
+  hist(lt_array,breaks=50,freq=FALSE,xlab="lifetime (mean of 50 values)",xlim=c(-1,6),main="likelihood function")
   
   lts <- seq(from=0,to=6,by=0.01)
   dens <- array(0,dim=c(length(lts)))
@@ -185,7 +185,7 @@ Make_Test_Plot_LT_Statistics <- function()
   }
   points(lts2,dens2,type="l",lty=2,lwd=2)
   xpts_line <- c(0,0)
-  ypts_line <- c(0,1)
+  ypts_line <- c(0,10)
   points(xpts_line,ypts_line,type="l")
   
 }
