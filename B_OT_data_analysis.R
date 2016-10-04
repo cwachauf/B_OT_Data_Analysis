@@ -1,5 +1,33 @@
 source("polym_mechanics.R")
 
+##Fit_Stan_Berk_Schl <- function(forces_open,lts_open,forces_closed,lts_closed)
+##{
+  
+##}
+
+Simulate_Stan_Berk_Schl <- function(F_min,F_max,N_open,N_closed,L_trans,L_open,k_eff,tau0_open,tau0_closed,N_eff,Temp=298.15)
+{
+  forces_open <- seq(from=F_min,to=F_max,length=N_open)
+  forces_closed <- seq(from=F_min,to=F_max,length=N_closed)
+  data_sim_bs_stan <- list(N_open=N_open,N_closed=N_closed,forces_open=forces_open,forces_closed=forces_closed,
+                           P=P,L_trans=L_trans,L_open=L_open,k_eff=k_eff,tau0_open=tau0_open,tau0_closed=tau0_closed,
+                           N_eff=N_eff,Temp=Temp)
+  sim_stan_bs <- stan(file="C:/Users/Christian/Documents/GithubRepo/B_OT_Data_Analysis/Stan/sim_Berk_Schl.stan",
+                      data=data_sim_bs_stan,iter=1,chain=1,algorithm="Fixed_param")
+  return(sim_stan_bs)
+}
+
+## Simulate_Stan_Occ_Prob_Open(F_min,F_max,n_forces,L,P,k_eff,G_int,dz,Temp=298.15)
+## use Stan to simulate occupation probability data for the open state
+Simulate_Stan_Occ_Prob_Open <- function(F_min,F_max,n_forces,L,P,k_eff,G_int,dz,Temp=298.15,sigma=0.03)
+{
+	require("rstan")
+	forces_open <- seq(from=F_min,to=F_max,length=n_forces)	
+  	data_sim_opo_stan <- list(N_open=n_forces,forces_open=forces_open,P=P,CL=L,k_eff=k_eff,G_int=G_int,dz=dz,sigma=sigma)
+	sim_stan_opo <- stan(file="C:/Users/Christian/Documents/GithubRepo/B_OT_Data_Analysis/Stan/sim_occ_prob_open.stan",data=data_sim_opo_stan,iter=1,chain=1,algorithm="Fixed_param")
+	return(sim_stan_opo)
+}
+
 Occupation_Probability_From_Force_Open <- function(F_open,L,P,k_eff,G_int,dz,Temp=298.15)
 {
   kB <- 1.38e-02
