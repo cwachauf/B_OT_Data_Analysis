@@ -8,14 +8,30 @@ Load_Extension_Gain_Data <- function(index,num_iters)
   df_ext_gain_data <- read.table(full_path,sep="\t",header=TRUE)
   head(df_ext_gain_data)
   
-  plot(df_ext_gain_data[,3],df_ext_gain_data[,4],xlim=c(0,8),ylim=c(0,11),xlab="force [pN]",ylab="extension gain [nm]")
+  
 ##  df_ext_gain_theor <- Plot_Extension_Gain_From_Force_Open(L=40,P=0.88,Temp=298.15,dz=3.5,F_min=2,F_max=6,npnts=200)
  ## points(df_ext_gain_theor$forces_open,df_ext_gain_theor$ext_gains_open,type="l")
   sf_ext_gain_data <- Stan_Fit_Extension_Gain_Data(forces_open=df_ext_gain_data[,3],extension_gains = df_ext_gain_data[,4],num_iters=num_iters)
+  ## save samples:
+  filename_samples <- paste0("/Users/christianwachauf/Documents/Daten/data_stack_faki/Ext_Gains_vs_Force/","samples_A0",toString(index),".csv")
+  filename_ext_gain_plot <- paste0("/Users/christianwachauf/Documents/Daten/data_stack_faki/Ext_Gains_vs_Force/","ext_gain_plot_A0",toString(index),".pdf")
+  filename_persistence_length_plot <- paste0("/Users/christianwachauf/Documents/Daten/data_stack_faki/Ext_Gains_vs_Force/","persistence_length_dist_A0",toString(index),".pdf")
+  mat <- as.matrix(sf_ext_gain_data)
+  write.table(x=mat,file=filename_samples,sep=";")
+  
+  ##
+  pdf(file=filename_ext_gain_plot,width=14,height=11,useDingbats=FALSE)
+  plot(df_ext_gain_data[,3],df_ext_gain_data[,4],xlim=c(0,8),ylim=c(0,11),xlab="force [pN]",ylab="extension gain [nm]")
   df_prediction_bands <- Plot_Stan_Extension_Gain_From_Force_Open(sf_ext_gain_data,F_min=2,F_max=7,npnts=100,nsamples=num_iters/2)
   points(df_prediction_bands$forces,df_prediction_bands$ext_gain_mean,type="l")
   points(df_prediction_bands$forces,df_prediction_bands$ext_gain_lp,type="l",lty=2)
   points(df_prediction_bands$forces,df_prediction_bands$ext_gain_up,type="l",lty=2)
+  dev.off()
+  
+  pdf(file=filename_persistence_length_plot,width=14,height=11,useDingbats=FALSE)
+  Plot_Persistence_Length_Distribution(mat[,1])
+  dev.off() 
+
   return(sf_ext_gain_data)
 }
 
@@ -85,4 +101,36 @@ Plot_Extension_Gain_From_Force_Open <- function(L,P,Temp=298.15,dz=3.5,F_min,F_m
   }
   df_ext_gain <- data.frame(forces_open,ext_gains_open)
   return(df_ext_gain)
+}
+
+Obtain_Parameters_For_Gamma_Distribution <- function(samples)
+{
+  mw <- mean(samples)
+  std <- sd(samples)
+  theta_mm <- std^2/mw
+  k_mm <- mw^2/std^2
+  df_gamma_params <- data.frame(theta=theta_mm,k=k_mm)
+  return(df_gamma_params)
+}
+
+Plot_Persistence_Length_Distribution <- function(P_samples)
+{
+  require("coda")
+  hist(P_samples,freq=FALSE,xlab="persistence length [nm]",ylab="probability density [1/nm]",main="marginal posterior of P")
+  df_gamma_params <- Obtain_Parameters_For_Gamma_Distribution(P_samples)
+  P_min <- min(P_samples)
+  P_max <- max(P_samples)
+  print(P_min)
+  print(P_max)
+  xvals <- seq(from=P_min,to=P_max,length=200)
+  yvals <- dgamma(x=xvals,shape=df_gamma_params$k,scale=df_gamma_params$theta)
+  yvals2 <- dnorm(x=xvals,mean=mean(P_samples),sd=sd(P_samples))
+  points(xvals,yvals,type="l") 
+  points(xvals,yvals2,type="l",col="red")
+  hdi_values <- HPDinterval(as.mcmc(P_samples))
+  print(hdi_values)
+  
+  axes_limits <- par("usr")
+  points(c(hdi_values[1],hdi_values[1]),c(0,axes_limits[4]),type="l",lty=2)
+  points(c(hdi_values[2],hdi_values[2]),c(0,axes_limits[4]),type="l",lty=2)
 }
